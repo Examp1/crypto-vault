@@ -19,7 +19,7 @@ async function encrypt() {
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const iv = crypto.getRandomValues(new Uint8Array(12));
 
-    const key = await deriveKey(password.value, salt);
+    const key = await deriveKey(password.value, salt.buffer as ArrayBuffer);
     const encoded = new TextEncoder().encode(seed.value);
     const ciphertext = await crypto.subtle.encrypt(
       { name: "AES-GCM", iv },
@@ -28,8 +28,8 @@ async function encrypt() {
     );
 
     const payload = {
-      salt: arrayBufferToBase64(salt),
-      iv: arrayBufferToBase64(iv),
+      salt: arrayBufferToBase64(salt.buffer as ArrayBuffer),
+      iv: arrayBufferToBase64(iv.buffer as ArrayBuffer),
       ciphertext: arrayBufferToBase64(ciphertext),
     };
 
@@ -71,7 +71,7 @@ async function decrypt() {
 }
 
 // Получение ключа из пароля (PBKDF2)
-async function deriveKey(password: string, salt: Uint8Array) {
+async function deriveKey(password: string, salt: ArrayBuffer) {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -84,7 +84,7 @@ async function deriveKey(password: string, salt: Uint8Array) {
     {
       name: "PBKDF2",
       salt,
-      iterations: 600000, // OWASP рекомендует 600k+ для 2024
+      iterations: 600000,
       hash: "SHA-256",
     },
     keyMaterial,
@@ -99,18 +99,18 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+    binary += String.fromCharCode(bytes[i]!);
   }
   return btoa(binary);
 }
 
-function base64ToArrayBuffer(base64: string): Uint8Array {
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes;
+  return bytes.buffer as ArrayBuffer;
 }
 
 function clear() {
